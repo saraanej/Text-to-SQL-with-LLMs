@@ -26,11 +26,16 @@ tokenizer, model = load_model()
 
 class QueryRequest(BaseModel):
     question: str
+    history: list[str] = []
 
 @app.post("/query")
 def handle_query(req: QueryRequest):
     try:
-        prompt = build_prompt(req.question, "chinook", chinook_schema)
+        print("🧾 Full history received:")
+        for line in req.history:
+            print(line)
+
+        prompt = build_prompt(req.question, "chinook", chinook_schema, req.history)
         sql = generate_sql(tokenizer, model, prompt)
         df = run_query(db_path, sql)
         result = df.to_dict(orient="records") if df is not None else []

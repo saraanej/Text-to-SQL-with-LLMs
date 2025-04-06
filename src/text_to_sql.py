@@ -7,7 +7,7 @@ def load_model(model_name="tscholak/1zha5ono"):
     return tokenizer, model
 
 # Build the prompt for the model (simple format)
-def build_prompt(question, db_id, schema) -> str:
+def build_prompt(question, db_id, schema, history: list[str] = None) -> str:
     schema_lines = []
     for line in schema.strip().split("\n"):
         line = line.strip()
@@ -16,14 +16,20 @@ def build_prompt(question, db_id, schema) -> str:
         table_name, columns = line.split(":", 1)
         schema_lines.append(f"{table_name.strip()} : {columns.strip()}")
 
-
     formatted_schema = " | ".join(schema_lines)
-    input_text = f"{question} | {db_id} | {formatted_schema}"
+    prompt = ""
+
+    if history:
+        for entry in history:
+            prompt += f"{entry.strip()}\n"
+
+    prompt += f"Q: {question}\n"
+    input_text = f"{prompt} | {db_id} | {formatted_schema}"
     return input_text
 
 # Generate SQL from natural language question
 def generate_sql(tokenizer, model, input_text) -> str:
-    inputs = tokenizer(input_text, return_tensors="pt", truncation=True)
+    inputs = tokenizer(input_text, return_tensors="pt", truncation=True, max_length=512)
     outputs = model.generate(**inputs, max_length=256)
     sql = tokenizer.decode(outputs[0], skip_special_tokens=True)
     sql = sql.split("|", 1)[1].strip()  # remove db_id

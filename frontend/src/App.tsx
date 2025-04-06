@@ -23,8 +23,17 @@ function App() {
     setChat((prev) => [...prev, { role: "user", content: question }]);
 
     try {
+
+      const formattedHistory = chat
+      .slice(4) // last 2 user + 2 agent messages
+      .filter((msg) => msg.role === "user" || msg.role === "agent")
+      .map((msg) =>
+        msg.role === "user" ? `Q: ${msg.content}` : `SQL: ${msg.content.split("\n")[0].includes("SQL") ? msg.content.split("\n")[0] : msg.content}`
+      );
+
       const res = await axios.post("http://localhost:8000/query", {
         question,
+        history: formattedHistory,
       });
 
       const { sql, results, error } = res.data;
@@ -42,7 +51,7 @@ function App() {
           : "(No results)";
 
 
-        const responseMessage = `📊 Results:\n${resultPreview}\n\n 🧠 SQL query:\n${sql}`;
+        const responseMessage = `📊 Results:\n${resultPreview}\n____________\n\n 🧠 SQL query:\n${sql}`;
 
         setChat((prev) => [...prev, { role: "agent", content: responseMessage }]);
       }
